@@ -17,5 +17,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: jdx/mise-action@v2
-      - run: curl https://unified-agent.s3.amazonaws.com/wss-unified-agent-${{ matrix-version }}.jar -o mend-ua.jar
+      - run: curl https://unified-agent.s3.amazonaws.com/wss-unified-agent-${{ matrix.version }}.jar -o mend-ua.jar
       - run: java -jar mend-ua.jar -offline true -project mend-pnpm-repro -logLevel debug
