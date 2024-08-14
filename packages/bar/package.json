@@ -1,0 +1,7 @@
+{
+  "name": "bar",
+  "version": "1.0.0",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "3.332.0"
+  }
+}

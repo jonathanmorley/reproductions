@@ -1,0 +1,21 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version:
+          - '24.2.1'
+          - '24.4.1'
+          - '24.5.1'
+          - '24.5.3'
+          - '24.6.1'
+          - '24.6.2'
+          - '24.7.1'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: jdx/mise-action@v2
+      - run: curl https://unified-agent.s3.amazonaws.com/wss-unified-agent-${{ matrix-version }}.jar -o mend-ua.jar
+      - run: java -jar mend-ua.jar -offline true -project mend-pnpm-repro -logLevel debug
