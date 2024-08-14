@@ -14,6 +14,7 @@ jobs:
           - '24.6.1'
           - '24.6.2'
           - '24.7.1'
+          - '24.7.2'
     steps:
       - uses: actions/checkout@v3
       - uses: jdx/mise-action@v2
