@@ -2,6 +2,6 @@
   "name": "root",
   "version": "1.0.0",
   "devDependencies": {
-    "async": "2.6.1"
+    "async": "2.6.4"
   }
 }
