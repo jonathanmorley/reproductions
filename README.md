@@ -1,1 +1,3 @@
-# mend-pnpm-workspace-repro
+# Reproductions
+
+A repository to house (and share) reproductions of problematic situations.
