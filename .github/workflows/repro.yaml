@@ -5,4 +5,4 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      uses: jonathanmorley/reproductions@36569821d4897ddf04ae07d7f0a3052e3392fa5e
+      - uses: jonathanmorley/reproductions@36569821d4897ddf04ae07d7f0a3052e3392fa5e
