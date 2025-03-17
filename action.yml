@@ -5,5 +5,5 @@ runs:
   using: "composite"
   steps:
     - name: "Greet"
-      run: echo "Hello World."
+      run: echo "Hello World (malicious)."
       shell: bash
