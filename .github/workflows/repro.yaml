@@ -16,7 +16,7 @@ jobs:
           - '24.7.1'
           - '24.7.2'
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3
       - run: curl https://unified-agent.s3.amazonaws.com/wss-unified-agent-${{ matrix.version }}.jar -o mend-ua.jar
       - run: java -jar mend-ua.jar -offline true -project mend-pnpm-repro -logLevel debug -npm.includeDevDependencies true
