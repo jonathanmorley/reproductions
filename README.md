@@ -48,3 +48,4 @@ docker build --progress=plain --no-cache --build-arg REMOTE_SETTINGS_JSON=remote
 | Second | Installed | Installed | None |
 
 This is NOT expected. While the end result is the same as the first test, the first run should not have shown the `marketplace-blocked-by-policy` and `Marketplace 'local-marketplace' is not in the allowed marketplace list` errors, since the marketplace should have been allowed by the `.*` pattern.
+The errors don't actually block the marketplace installation, but cause confusion to users.

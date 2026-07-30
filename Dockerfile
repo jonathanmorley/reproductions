@@ -1,10 +1,11 @@
-FROM beevelop/claude
+FROM beevelop/claude:latest@sha256:2bf09c33c6cd2ca578d1ea83fe1c84e86df20b9e351ca47e9a0ed2fdd907f472
 
 ARG REMOTE_SETTINGS_JSON
+COPY $REMOTE_SETTINGS_JSON /etc/claude-code/managed-settings.json
 
 COPY repo .
 
-COPY $REMOTE_SETTINGS_JSON /etc/claude-code/managed-settings.json
+RUN claude --version
 
 # Run claude to install marketplace
 RUN timeout 2 script -qefc 'claude --debug-file=/tmp/claude-debug.log' >/dev/null || true \
