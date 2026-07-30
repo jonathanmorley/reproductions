@@ -1,0 +1,8 @@
+{
+  "strictKnownMarketplaces": [
+    {
+      "pathPattern": ".*",
+      "source": "pathPattern"
+    }
+  ]
+}

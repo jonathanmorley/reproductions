@@ -1,0 +1,5 @@
+{
+  "name": "local-plugin",
+  "description": "Automatic code formatting on save",
+  "version": "0.0.4"
+}

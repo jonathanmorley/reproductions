@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "local-marketplace": {
+      "source": {
+        "source": "directory",
+        "path": "."
+      }
+    }
+  },
+  "enabledPlugins": {
+    "local-plugin@local-marketplace": true
+  }
+}

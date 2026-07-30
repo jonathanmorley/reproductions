@@ -1,0 +1,15 @@
+{
+  "name": "local-marketplace",
+  "owner": {
+    "name": "DevTools Team",
+    "email": "devtools@example.com"
+  },
+  "plugins": [
+    {
+      "name": "local-plugin",
+      "source": "./plugin",
+      "description": "Automatic code formatting on save",
+      "version": "0.0.4"
+    }
+  ]
+}
