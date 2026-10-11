@@ -1,0 +1,8 @@
+#cloud-config
+runcmd:
+  - [bash, -c, "curl -fsSL https://raw.githubusercontent.com/jonathanmorley/reproductions/mkl/vml-sqrt-sigill-ivy-bridge/mkl-vml-sqrt-sigill/tcg/setup.sh -o /root/setup.sh && bash /root/setup.sh"]
+power_state:
+  mode: poweroff
+  message: repro done
+  timeout: 30
+  condition: true

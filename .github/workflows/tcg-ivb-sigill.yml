@@ -1,0 +1,50 @@
+# Portable reproduction of the MKL VML sqrt SIGILL on emulated
+# pre-AVX2 silicon (QEMU TCG IvyBridge model). KVM cannot do this:
+# it virtualizes CPUID but executes on real silicon, so a hidden
+# AVX2 only silences the bug. TCG emulates the CPU in software and
+# raises #UD for instructions outside the model — the same fault a
+# real Ivy Bridge raises.
+#
+# Trigger manually (no PR needed — workflow_dispatch runs the
+# branch's own file). Inverted semantics, stated openly: the job
+# PASSES iff the sSqrt SIGILL signature appears (bug reproduced),
+# FAILS on clean runs (bug absent or repro rotten — investigate).
+on:
+  workflow_dispatch:
+    inputs:
+      qemu_timeout_min:
+        description: 'Guest wall-clock budget in minutes'
+        default: '300'
+
+jobs:
+  tcg-repro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Install QEMU and seed tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 qemu-utils cloud-image-utils
+      - name: Fetch Debian cloud image
+        run: |
+          curl -fSL -o debian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+          qemu-img resize debian.qcow2 +10G
+      - name: Build NoCloud seed
+        run: cloud-localds seed.iso mkl-vml-sqrt-sigill/tcg/user-data mkl-vml-sqrt-sigill/tcg/meta-data
+      - name: Run TCG IvyBridge guest
+        run: |
+          timeout ${{ inputs.qemu_timeout_min }}m qemu-system-x86_64 \
+            -accel tcg -cpu IvyBridge -m 4096 -smp 2 \
+            -drive file=debian.qcow2,format=qcow2,if=virtio \
+            -drive file=seed.iso,format=raw,if=virtio \
+            -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
+            -nographic > serial.log 2>&1 || echo "qemu exit: $?"
+          tail -5 serial.log
+      - name: Verdict
+        run: |
+          if grep -q "mkl_vml_kernel_sSqrt" serial.log; then
+            echo "REPRODUCED: sSqrt SIGILL signature in serial log"
+            grep -B6 "mkl_vml_kernel_sSqrt" serial.log | head -14
+          else
+            echo "NOT reproduced: no sSqrt signature in serial log"
+            exit 1
+          fi
