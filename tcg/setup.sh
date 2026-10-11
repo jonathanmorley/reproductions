@@ -19,6 +19,7 @@ test -d /mnt/data/wheels || { echo "SETUP-FAILED: no wheels dir"; poweroff -f; }
 echo "=== python env ==="
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv python3-pip
+python3 --version
 python3 -m venv /root/venv
 test -x /root/venv/bin/pip || { echo "SETUP-FAILED: no venv pip"; poweroff -f; }
 

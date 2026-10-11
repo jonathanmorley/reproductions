@@ -19,10 +19,13 @@ qemu-img resize debian.qcow2 +10G
 
 echo "=== payload ISO (torch wheels + repro, host-side) ==="
 mkdir -p payload/wheels
-python3 -m pip download -q --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple --dest payload/wheels "torch==2.14.1" || fail "pip download"
+# Built FOR the guest interpreter (Debian bookworm python3.11), not
+# the host's: cp312 wheels install nowhere in the guest (proven by
+# a void run — pip sees "from versions: none" and fails in seconds).
+python3 -m pip download -q --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple --dest payload/wheels --python-version 311 --platform manylinux_2_28_x86_64 --abi cp311 --only-binary=:all: "torch==2.14.1" || fail "pip download"
 cp repro.py tcg/setup.sh payload/
 ls payload/wheels/
-test -f payload/wheels/torch-*.whl || fail "no torch wheel downloaded"
+test -f payload/wheels/torch-*cp311*.whl || fail "no cp311 torch wheel downloaded"
 command -v genisoimage >/dev/null || fail "no genisoimage"
 genisoimage -o data.iso -V DATA -R -J payload/
 
