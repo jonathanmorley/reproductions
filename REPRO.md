@@ -74,6 +74,17 @@ alignments, and 2000 bare Adam steps over the exact param shapes
 all survive — the trigger needs the full training loop (or its
 allocator/threading state). Minimizing further is open.
 
+## Portable run (QEMU TCG, any x86_64 host)
+
+`./repro.sh` runs the whole recipe end to end: Debian cloud image,
+torch payload ISO, TCG IvyBridge guest, verdict. Exit 1 = bug
+manifested (sSqrt signature), 2 = infra failure, 0 = clean run.
+Needs root or passwordless sudo, ~15 GB free, and hours of wall
+clock (TCG is 10–50× slower than native). Same job runs in CI via
+manual dispatch (see repo README); a clean run under TCG is a
+lottery miss, not exoneration — same one-way-test caveat as bare
+metal.
+
 ## Workaround
 
 None known. `MKL_ENABLE_INSTRUCTIONS=SSE4_2` was tried and shown
