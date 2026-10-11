@@ -1,6 +1,6 @@
 #cloud-config
 runcmd:
-  - [bash, -c, "curl -fsSL https://raw.githubusercontent.com/jonathanmorley/reproductions/mkl/vml-sqrt-sigill-ivy-bridge/mkl-vml-sqrt-sigill/tcg/setup.sh -o /root/setup.sh && bash /root/setup.sh"]
+  - [bash, -c, "mkdir -p /mnt/data && mount -L DATA /mnt/data && bash /mnt/data/setup.sh"]
 power_state:
   mode: poweroff
   message: repro done
