@@ -1,0 +1,40 @@
+# Rebuilds the README index from branches carrying a REPRO.md and
+# proposes the update as a PR (main is protected — never pushed
+# directly). Triggers on branch create/delete so the index follows
+# the repo's lifecycle; manual dispatch rebuilds on demand. Skips
+# ci/* trigger branches (bot-owned; the index ignores them anyway).
+on:
+  create:
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  index:
+    if: ${{ !startsWith(github.ref_name, 'ci/') && (github.ref_type == 'branch' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: main
+      - name: Rebuild index
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/workflows/build-index.py --write
+      - name: Open or update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet; then echo "index unchanged"; exit 0; fi
+          git checkout -B ci/auto-index
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "Auto-index repro branches"
+          git push -f origin ci/auto-index
+          EXISTING=$(gh pr list --head ci/auto-index --state open --json number --jq '.[0].number')
+          if [ -z "$EXISTING" ] || [ "$EXISTING" = "null" ]; then
+            gh pr create --title "Auto-index repro branches" --body "Automated index rebuild (branch lifecycle event). Do not hand-edit between the markers." --base main --head ci/auto-index
+          else
+            echo "updated existing PR #$EXISTING"
+          fi
