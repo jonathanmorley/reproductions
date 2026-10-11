@@ -18,9 +18,21 @@ C side (same symbol+offset every time):
 libtorch_cpu.so, at mkl_vml_kernel_sSqrt_Z0HAynn+0x9a
 ```
 
-i.e. Adam's `denom = (exp_avg_sq.sqrt() / ...)` dispatches MKL's
-single-precision VML sqrt `Z0HAynn` variant, and the CPU refuses
-the instruction.
+Disassembly of the fault site (pure-Python ELF parse + capstone,
+no binutils needed on the box) shows the instruction *at* `+0x9a`
+is:
+
+```
+vmovups zmm5, zmmword ptr [rip + ...]
+```
+
+EVEX-encoded AVX-512 loads — preceded by an MXCSR save/restore
+dance (`vldmxcsr`), i.e. this is genuinely MKL's AVX-512 kernel
+entry, not a torn pointer landing mid-function (a corrupt jump
+would not land five times running on the same valid AVX-512
+prologue). On Ivy Bridge every EVEX instruction is `#UD`, hence
+SIGILL. The `Z0` in MKL's variant name is the AVX-512/ZMM
+family; H8/L9 siblings cover lower ISAs.
 
 The fault is stochastic per run, not per batch: identical seeded
 replays crash on some runs and sail through on others (a monkey-
@@ -69,22 +81,24 @@ insufficient (capped runs still die in the same kernel) — do not
 rely on it. The operational mitigation is crash-retry: the workload
 is checkpointed per epoch, so resume (`--resume` with versioned
 checkpoints) rather than restart; every completed run on record is
-a lottery survivor. A real fix needs Intel (dispatch bug) or newer
-silicon (if the `Z0HAynn` variant genuinely requires post-AVX ISA
-— unestablished; the pin's failure cuts against the simple
-AVX2-dispatch story and toward a torn-dispatch-pointer race, but
-neither is proven).
+a lottery survivor. A real fix needs Intel: the `Z0` variant is
+proven AVX-512 code (disassembled fault site), so dispatching it on
+AVX1-max silicon is simply wrong — the remaining question is only
+what selects it per call.
 
 ## Verdict
 
-Something in MKL's sqrt dispatch path faults on pre-AVX2 silicon
-(`#UD` inside `sSqrt_Z0HAynn`, reached deterministically from
-Adam's `exp_avg_sq.sqrt()` but only on some runs). Two candidate
-mechanisms, neither proven: (a) length/shape-dependent dispatch
-emitting a post-AVX kernel the CPU lacks; (b) a torn dispatch
-pointer / init race landing mid-function (`+0x9a`). The pin's
-failure to prevent it cuts against the simple form of (a) — unless
-the pin doesn't reach VML dispatch at all. Not a VM
+MKL dispatches its AVX-512 (`Z0`) single-precision VML sqrt kernel
+on AVX1-max silicon → first `zmm` touch faults `#UD` → SIGILL,
+reached deterministically from Adam's `exp_avg_sq.sqrt()`. The
+*selection* of the Z0 variant is stochastic per run (identical
+seeded computations diverge; isolated sqrt in all forms/sizes/
+values/alignments plus 2000 bare Adam steps never fault), so the
+per-call selector remains the open question — but the faulting
+bytes are not in doubt. The `MKL_ENABLE_INSTRUCTIONS=SSE4_2` pin
+does not reliably exclude the Z0 path (capped runs die identically),
+so a proper SSE4_2 cap would have to live somewhere the VML
+dispatcher actually consults — currently unknown. Not a VM
 misconfiguration: the hypervisor passes the host CPU through
 unaltered, `/proc/cpuinfo` matches the silicon exactly, and AVX
 workloads (torch/oneDNN/numpy, hundreds of epochs) are otherwise
