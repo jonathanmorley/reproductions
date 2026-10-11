@@ -38,7 +38,8 @@ jobs:
           mkdir -p payload/wheels
           python3 -m pip download -q --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple --dest payload/wheels "torch==2.14.1"
           cp mkl-vml-sqrt-sigill/repro.py mkl-vml-sqrt-sigill/tcg/setup.sh payload/
-          ls payload payload/wheels | head -12
+          ls payload/wheels/
+          test -f payload/wheels/torch-*.whl || { echo "PAYLOAD-FAILED: no torch wheel downloaded"; exit 1; }
           genisoimage -o data.iso -V DATA -R -J payload/
       - name: Build NoCloud seed
         run: cloud-localds seed.iso mkl-vml-sqrt-sigill/tcg/user-data mkl-vml-sqrt-sigill/tcg/meta-data
@@ -51,7 +52,8 @@ jobs:
             -drive file=data.iso,format=raw,if=virtio,readonly=on \
             -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
             -nographic > serial.log 2>&1 || echo "qemu exit: $?"
-          tail -5 serial.log
+          echo "=== full serial log ($(wc -l < serial.log) lines) ==="
+          cat serial.log
       - name: Verdict
         run: |
           if grep -q "mkl_vml_kernel_sSqrt" serial.log; then
