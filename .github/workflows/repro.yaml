@@ -7,8 +7,10 @@
 #
 # Trigger manually (no PR needed — workflow_dispatch runs the
 # branch's own file). Inverted semantics, stated openly: the job
-# PASSES iff the sSqrt SIGILL signature appears (bug reproduced),
-# FAILS on clean runs (bug absent or repro rotten — investigate).
+# PASSES iff the sSqrt SIGILL signature appears (bug reproduced).
+# SETUP-FAILED (infra — guest never ran the workload) and clean
+# runs both fail the job with distinct messages; only the signature
+# passes.
 on:
   workflow_dispatch:
     inputs:
@@ -26,11 +28,18 @@ jobs:
         run: |
           test -f mkl-vml-sqrt-sigill/tcg/user-data || { echo "repro files absent on this ref — dispatch the repro branch (mkl/vml-sqrt-sigill-ivy-bridge), not main"; exit 1; }
       - name: Install QEMU and seed tools
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 qemu-utils cloud-image-utils
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 qemu-utils cloud-image-utils genisoimage python3-pip
       - name: Fetch Debian cloud image
         run: |
           curl -fSL -o debian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
           qemu-img resize debian.qcow2 +10G
+      - name: Build payload ISO (torch wheels + repro, host-side)
+        run: |
+          mkdir -p payload/wheels
+          python3 -m pip download -q --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple --dest payload/wheels "torch==2.14.1"
+          cp mkl-vml-sqrt-sigill/repro.py mkl-vml-sqrt-sigill/tcg/setup.sh payload/
+          ls payload payload/wheels | head -12
+          genisoimage -o data.iso -V DATA -R -J payload/
       - name: Build NoCloud seed
         run: cloud-localds seed.iso mkl-vml-sqrt-sigill/tcg/user-data mkl-vml-sqrt-sigill/tcg/meta-data
       - name: Run TCG IvyBridge guest
@@ -39,6 +48,7 @@ jobs:
             -accel tcg -cpu IvyBridge -m 4096 -smp 2 \
             -drive file=debian.qcow2,format=qcow2,if=virtio \
             -drive file=seed.iso,format=raw,if=virtio \
+            -drive file=data.iso,format=raw,if=virtio,readonly=on \
             -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
             -nographic > serial.log 2>&1 || echo "qemu exit: $?"
           tail -5 serial.log
@@ -47,6 +57,9 @@ jobs:
           if grep -q "mkl_vml_kernel_sSqrt" serial.log; then
             echo "REPRODUCED: sSqrt SIGILL signature in serial log"
             grep -B6 "mkl_vml_kernel_sSqrt" serial.log | head -14
+          elif grep -q "SETUP-FAILED" serial.log; then
+            echo "INFRA FAILURE: guest setup never reached the workload (see above)"
+            exit 2
           else
             echo "NOT reproduced: no sSqrt signature in serial log"
             exit 1
