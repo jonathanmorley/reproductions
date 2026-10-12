@@ -35,14 +35,17 @@ genisoimage -o data.iso -V DATA -R -J payload/
 echo "=== NoCloud seed ==="
 cloud-localds seed.iso tcg/user-data tcg/meta-data || fail "seed build"
 
-echo "=== TCG IvyBridge guest (up to ${QEMU_TIMEOUT_MIN}m) ==="
+echo "=== TCG IvyBridge guest (up to ${QEMU_TIMEOUT_MIN}m, streaming) ==="
 timeout "${QEMU_TIMEOUT_MIN}m" qemu-system-x86_64 \
   -accel tcg -cpu IvyBridge -m 4096 -smp 2 \
   -drive file=debian.qcow2,format=qcow2,if=virtio \
   -drive file=seed.iso,format=raw,if=virtio \
   -drive file=data.iso,format=raw,if=virtio,readonly=on \
   -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
-  -nographic > serial.log 2>&1 || echo "qemu exit: $?"
+  -nographic > serial.log 2>&1 &
+QPid=$!
+tail -F --pid=$QPid serial.log 2>/dev/null
+wait $QPid; echo "qemu exit: $?"
 test -f serial.log || fail "no serial log"
 echo "=== guest tail (last progress before verdict) ==="
 tail -15 serial.log
