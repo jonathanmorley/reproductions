@@ -102,12 +102,23 @@ rare excursion breaks out of:
 
 `./repro.sh` runs the whole recipe end to end: Debian cloud image,
 torch payload ISO, TCG IvyBridge guest, verdict. Exit 1 = bug
-manifested (sSqrt signature), 2 = infra failure, 0 = clean run.
-Needs root or passwordless sudo, ~15 GB free, and hours of wall
-clock (TCG is 10–50× slower than native). Same job runs in CI via
-manual dispatch (see repo README); a clean run under TCG is a
-lottery miss, not exoneration — same one-way-test caveat as bare
-metal.
+manifested (sSqrt signature), 2 = infra failure, 0 only on a PROVEN
+clean run (every seed reached SURVIVED ALL), 3 = timeout/incomplete
+(no verdict possible — never report these as clean). Needs root or
+passwordless sudo, ~15 GB free, and hours of wall clock.
+Same job runs in CI via manual dispatch (see repo README).
+
+Measured TCG cost (GHA `ubuntu-latest`, probe run, guest Python
+3.11): pure-Python loop 0.50s native → 3.4s emulated (~7×);
+2000² single-thread matmul ~0.5s native → 111.6s emulated (~200×
+on vectorized numerics — the workload's bulk). A native 4-minute
+seed-epoch therefore costs ~13+ emulated hours: a full run cannot
+fit any CI time budget, and a 300-minute attempt expired without
+finishing (correctly reported INCOMPLETE, not clean). TCG
+portability is measured-impractical for this workload. The native
+repro above stands as the evidence; this section documents the
+attempt. A clean TCG run would be a lottery miss anyway — same
+one-way-test caveat as bare metal.
 
 ## Workaround
 
