@@ -54,4 +54,8 @@ repeated attempts; see the branch for budgets).
 ## Index
 
 <!-- REPRO-INDEX:START -->
+| Branch | Entry | What |
+|---|---|---|
+| `gix/merge-identical-add-unknown` | [gix-merge-identical-add/REPRO.md](https://github.com/jonathanmorley/reproductions/blob/gix/merge-identical-add-unknown/gix-merge-identical-add/REPRO.md) | gix-merge: identical add/add reported as `Err(Unknown)` |
+| `mkl/vml-sqrt-sigill-ivy-bridge` | [README.md](https://github.com/jonathanmorley/reproductions/blob/mkl/vml-sqrt-sigill-ivy-bridge/README.md) | MKL VML sqrt SIGILLs Adam on pre-AVX2 Intel (torch CPU) |
 <!-- REPRO-INDEX:END -->
