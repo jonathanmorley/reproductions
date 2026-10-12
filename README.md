@@ -121,7 +121,29 @@ proven AVX-512 code (disassembled fault site), so dispatching it on
 AVX1-max silicon is simply wrong — the remaining question is only
 what selects it per call.
 
-## Verdict
+## A second family: hangs under concurrency (open)
+
+Separately from the SIGILL lottery, multi-threaded torch+MKL runs
+hang: a local run burned 24 CPU-min with zero epoch output (no
+faulthandler dump — pure spin, not a fault), and a 5-hour TCG guest
+run (smp 2, torch 2 threads + MKL pool) never finished (`qemu
+exit: 124`, verdict correctly INCOMPLETE, not clean). Concurrent
+executions on small boxes have also deadlocked outright. Common
+thread (ha): oversubscribed threading layers — torch intra-op pool
+× MKL/OpenMP pools × libgomp-vs-libiomp nesting — with MKL's
+spin-waiting turning contention into livelock. Distinct from Family
+A: no faulting instruction, just silence at full CPU.
+
+Untried mitigations, cheapest first: `KMP_BLOCKTIME=0`
+(spin→sleep), `MKL_DYNAMIC=TRUE`, hard thread caps
+(`OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, torch 1 thread), and —
+above all — not running two heavy torch jobs on a 2-CPU box.
+Single-threaded crash runs are in flight: a Family-A crash under
+one thread would prove dispatch independent of threading; 4/4
+clean would implicate thread-interplay in *something* (which
+family, TBD).
+
+## Verdict (Family A)
 
 MKL dispatches its AVX-512 (`Z0`) single-precision VML sqrt kernel
 on AVX1-max silicon → first `zmm` touch faults `#UD` → SIGILL,

@@ -1,11 +1,14 @@
 #!/bin/bash
 # Repro entrypoint: full TCG-IvyBridge run of the MKL SIGILL repro.
 # Contract (see ../README.md): no args; exit 1 iff the bug manifests
-# (sSqrt SIGILL signature in guest output), 2 on infra failure,
-# 0 on a clean run. Everything streams to stdout (the CI log).
+# (sSqrt SIGILL signature in guest output), 2 on infra failure, 3 on
+# timeout/incomplete (no verdict possible), 0 only on a PROVEN clean
+# run (every seed reached SURVIVED ALL). Everything streams to stdout.
 # Requirements: x86_64 Linux, root or passwordless sudo, ~15 GB free.
 set -u
 QEMU_TIMEOUT_MIN="${QEMU_TIMEOUT_MIN:-300}"
+SEEDS="7 11 23 42 99"
+NSEEDS=$(echo "$SEEDS" | wc -w)
 
 fail() { echo "SETUP-FAILED: $1"; exit 2; }
 
@@ -41,6 +44,8 @@ timeout "${QEMU_TIMEOUT_MIN}m" qemu-system-x86_64 \
   -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
   -nographic > serial.log 2>&1 || echo "qemu exit: $?"
 test -f serial.log || fail "no serial log"
+echo "=== guest tail (last progress before verdict) ==="
+tail -15 serial.log
 
 echo "=== verdict ==="
 if grep -q "mkl_vml_kernel_sSqrt" serial.log; then
@@ -49,7 +54,10 @@ if grep -q "mkl_vml_kernel_sSqrt" serial.log; then
   exit 1
 elif grep -q "SETUP-FAILED" serial.log; then
   echo "INFRA FAILURE inside guest (see above)"; exit 2
-else
-  echo "NOT reproduced: clean run, no sSqrt signature"
+elif [ "$(grep -c "SURVIVED ALL" serial.log)" -ge "$NSEEDS" ]; then
+  echo "NOT reproduced: all $NSEEDS seeds completed clean"
   exit 0
+else
+  echo "INCOMPLETE: guest never finished (timeout or hang?) — no verdict possible"
+  exit 3
 fi
