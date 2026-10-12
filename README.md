@@ -32,9 +32,11 @@ repro branch name. The generic job checks out that branch and runs
 
 Contract for `repro.sh`: executable, no arguments; exit `1` iff the
 bug manifests, `2` on infra failure (environment never reached the
-bug), `0` on a clean run. Echo `SETUP-FAILED` (infra) or the
-branch's documented signature (bug) so the log is greppable. The
-workflow passes the exit code through unchanged.
+bug), `3` on timeout/incomplete (no verdict possible — never report
+these runs as clean), `0` only on a proven-clean run. Echo
+`SETUP-FAILED` (infra) or the branch's documented signature (bug)
+so the log is greppable. The workflow passes the exit code through
+unchanged.
 
 Runner requirements: x86_64 Linux, root or passwordless sudo,
 ~15 GB free disk, generous wall clock (lottery-class bugs need
