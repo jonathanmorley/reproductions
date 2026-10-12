@@ -76,6 +76,28 @@ alignments, and 2000 bare Adam steps over the exact param shapes
 all survive — the trigger needs the full training loop (or its
 allocator/threading state). Minimizing further is open.
 
+## SDE mix evidence (surviving run, 94 batches)
+
+`sde -ivb -mix` on a clean run shows the steady state that the
+rare excursion breaks out of:
+
+- `mkl_vml_kernel_sSqrt_H8HAynn` executed **exactly 1880 times** —
+  every Adam sqrt call of all 94 batches × 20 params took the H8
+  (pre-AVX) variant. The selector is not per-call-random here; it
+  picked H8 1880/1880, so whatever flips it to Z0 is a rare,
+  call-specific condition, not a coin flip.
+- 50.6B `avx256` + 8.0B `avx128` instructions, **zero `avx512`
+  rows** — the entire surviving run executed nothing above AVX.
+- Hottest sqrt work is SSE `rsqrtps` (torch's own vectorized
+  Newton–Raphson path, 24M executions) — MKL VML handles only the
+  Adam-denominator calls, which is why bare-sqrt sweeps (torch
+  vectorized path) can never fault: they never reach VML at all.
+- Open: what per-call input flips H8→Z0 (sizes/values/alignments
+  all exonerated in isolation), and why the SSE4_2 pin doesn't
+  exclude Z0. Live probe: `MKL_VERBOSE=1` streams per-call
+  dispatch — a crashing verbose run's last lines *are* the
+  selector evidence.
+
 ## Portable run (QEMU TCG, any x86_64 host)
 
 `./repro.sh` runs the whole recipe end to end: Debian cloud image,
