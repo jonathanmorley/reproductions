@@ -91,6 +91,28 @@ per-call H8 uniformity. Untried mitigations, cheapest first:
 `KMP_BLOCKTIME=0`, `MKL_DYNAMIC=TRUE`, hard thread caps, serial
 job scheduling on small boxes.
 
+## Load modulation (inconclusive, expensive lesson)
+
+Crash counts by era: Oct 10–11 multi-threaded 7/7 (incl. 3 resumes
+sharing one ep4 state — effectively fewer independent draws);
+Oct 13 multi-threaded ~2/~30 with singles 4/4 clean. No single
+rate fits both eras, so *something* differs — but the load
+investigation failed to name it:
+- CPU-spin contention (`yes` hogs): no measurable crash-rate
+  effect (and no hangs).
+- Page-cache churn (8 GB streaming loop): 7–8× slowdown, steady
+  progress, 1 completion, zero hangs. Six siblings "failed" only
+  because the 280 s cap was set from quiet-box timing — a pure
+  methodology misfire, recorded so nobody re-runs it blind.
+- Verdict: load-coupling UNPROVEN in both directions. The era gap
+  could equally be small-sample luck on correlated draws, kernel
+  freshness (post-reboot page tables), or contention of a kind not
+  tested (real memory-bandwidth pressure was never safely
+  reproducible here — no swap, shared box, OOM killer risk).
+Process-hygiene scar: `pkill -f` with the victim string in your own
+command line kills your own shell. Match PIDs, never patterns, on
+shared boxes.
+
 ## SDE mix evidence (surviving run, 94 batches)
 
 `sde -ivb -mix` on a clean run shows the steady state that the
