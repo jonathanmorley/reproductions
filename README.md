@@ -76,6 +76,21 @@ alignments, and 2000 bare Adam steps over the exact param shapes
 all survive — the trigger needs the full training loop (or its
 allocator/threading state). Minimizing further is open.
 
+## Thread dependence (measured)
+
+Four single-threaded seeds (`--threads 1` + `OMP_NUM_THREADS=1`
+`MKL_NUM_THREADS=1`, full 854-batch epochs, ~5.5 min each): all
+clean. Against ~60% crash multi-threaded, P(4/4 clean) ≈ 2.6% —
+thread-interplay is load-bearing for *something* (which family it
+unlocks is open: the dispatch race needs threads by construction,
+and the hang family is threading all the way down). Prime suspect
+remains the 16-byte dispatch-state objects
+(`__intel_mkl_feature_indicator[_x]` are OBJECTs, not code):
+a torn write or init race there explains per-run decisions with
+per-call H8 uniformity. Untried mitigations, cheapest first:
+`KMP_BLOCKTIME=0`, `MKL_DYNAMIC=TRUE`, hard thread caps, serial
+job scheduling on small boxes.
+
 ## SDE mix evidence (surviving run, 94 batches)
 
 `sde -ivb -mix` on a clean run shows the steady state that the
