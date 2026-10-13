@@ -114,7 +114,10 @@ Measured TCG cost (GHA `ubuntu-latest`, probe run, guest Python
 on vectorized numerics — the workload's bulk). A native 4-minute
 seed-epoch therefore costs ~13+ emulated hours: a full run cannot
 fit any CI time budget, and a 300-minute attempt expired without
-finishing (correctly reported INCOMPLETE, not clean). TCG
+finishing (correctly reported INCOMPLETE, not clean). A follow-up
+full-recipe run confirmed the plumbing (offline torch install
+works, seed 7 trained all 854 batches clean) and measured the
+real pace: ~1.1 epochs per 5 hours. TCG
 portability is measured-impractical for this workload. The native
 repro above stands as the evidence; this section documents the
 attempt. A clean TCG run would be a lottery miss anyway — same
