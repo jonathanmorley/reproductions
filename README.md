@@ -1,6 +1,8 @@
 # MKL VML sqrt SIGILLs Adam on pre-AVX2 Intel (torch CPU)
 
 > Single repro branch of [jonathanmorley/reproductions](https://github.com/jonathanmorley/reproductions) — start here. Repo conventions live on `main`.
+>
+> Reported upstream 2026-10-14: [uxlfoundation/oneMath#789](https://github.com/uxlfoundation/oneMath/issues/789) (the dispatch bug) and [fzakaria/rewindvm#2](https://github.com/fzakaria/rewindvm/issues/2) (RewindVM's own zero-size-slot failure, found while isolating this).
 
 ## Symptom
 
