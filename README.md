@@ -135,6 +135,31 @@ rare excursion breaks out of:
   dispatch — a crashing verbose run's last lines *are* the
   selector evidence.
 
+## Reliability via RewindVM (blocked by a RewindVM bug — recorded)
+
+RewindVM (`check`: perturbed-schedule search for a deterministically
+failing interleave) was the chosen instrument for turning the
+lottery into a certain trigger. It never got there — `rewind run`
+dies before boot on this kernel, for a reason unrelated to our bug:
+- GDB-traced ioctls: `CREATE_VM` ✓, `SET_TSS_ADDR` ✓,
+  `CREATE_IRQCHIP` ✓, `SET_USER_MEMORY_REGION` ×2 ✓, then a third
+  `SET_USER_MEMORY_REGION` with **size=0** → `EINVAL` (-22), abort.
+  Full sequence: slot 0 RAM/1 GB dirty-logged, slot 1 image-sized
+  readonly (1.3 GB full rootfs, 36 MB minimal rootfs — scales with
+  content), slot 2 zero-size readonly at slot 1's address.
+- Direct kernel probe (10-line python, no rewind): this kernel
+  (6.18.55) rejects zero-size slots with EINVAL regardless of
+  flags. Mainline behavior, not nested-specific.
+- Minimal repro of *their* bug: 38 MB rootfs (bash+glibc) fails
+  identically — not content-dependent. Plain QEMU+KVM boots this
+  box fine (nested virt healthy), so it's purely how rewind calls
+  the API (empty trailing mapping? delete-via-zero on a kernel
+  that no longer accepts it?).
+- Status: needs an upstream fix (skip empty mappings / proper
+  deletion); the `check` experiment is parked behind it. Evidence
+  packaged for an issue: ioctl trace + kernel probe + minimal root
+  recipe + plain-QEMU control.
+
 ## Portable run (QEMU TCG, any x86_64 host)
 
 `./repro.sh` runs the whole recipe end to end: Debian cloud image,
